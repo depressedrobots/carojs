@@ -8,7 +8,7 @@ class SC_KeyboardStatus {
 class SC_Main {
 
     private canvas;
-    private ctx;
+    private ctx:CanvasRenderingContext2D;
 
     private lastTime: number = Date.now();
 
@@ -23,6 +23,8 @@ class SC_Main {
     private currentColorValue: number;
     private colorChangeRate: number = 20;
 
+    private resourcesManager: SC_ResourceManager;
+
     public init() {
         this.canvas = document.createElement("canvas");
         this.ctx = this.canvas.getContext("2d");
@@ -35,6 +37,22 @@ class SC_Main {
         this.lastFPS = 0;
         this.currentColorValue = 0;
         this.keyboardStatus = new SC_KeyboardStatus();
+        this.player = new SC_Player();
+
+        this.loadResources();
+    }
+
+    private loadResources() {
+        this.resourcesManager = new SC_ResourceManager();
+        this.resourcesManager.push("assets/dummy.png");
+        this.resourcesManager.push("assets/brick.png");
+        this.resourcesManager.startDownload(f => this.onResourcesLoaded);
+    }
+
+    public onResourcesLoaded() {
+        if (true == this.resourcesManager.allSuccessfull() ) {
+            this.player.img = this.resourcesManager.getResource("assets/dummy.png");
+        }
     }
 
     public update() {
@@ -62,6 +80,10 @@ class SC_Main {
         //clear first
         this.ctx.fillStyle = "rgb(" + this.currentColorValue.toFixed(0)  + ", 0, 0)";
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+       // if (this.player.img != null) {
+            this.player.render(this.ctx);
+      //  }
 
         // write fps
 	    this.ctx.fillStyle = "rgb(255, 0, 0)";
@@ -122,13 +144,66 @@ class SC_Main {
 class SC_Actor {
     constructor (public x: number = 0, public y: number = 0) {
     };
+
+    public img;
+
+    public render(ctx_: CanvasRenderingContext2D) {
+        ctx_.drawImage(this.img, this.x, this.y);
+    }
 }
 
 class SC_Player extends SC_Actor {
     
 }
 
+class SC_ResourceManager {
+        private downloadQueue = [];
+        private cache = {};
+        private successCount = 0;
+        private errorCount = 0;
 
+        public push(path_: String) {
+            this.downloadQueue.push(path_);
+        };
+
+        public startDownload(finishedCallback_ : Function) {
+            if (this.downloadQueue.length === 0) {
+                finishedCallback_();
+            }
+
+            for (var i = 0; i < this.downloadQueue.length; i++) {
+                var path = this.downloadQueue[i];
+                var img = new Image();
+                var that = this;
+                img.addEventListener("load", function () {
+                    that.successCount++;
+                    if (that.isDownloadComplete()) {
+                        finishedCallback_();
+                    }
+                }, false);
+                img.addEventListener("error", function () {
+                    that.errorCount++;
+                    if (that.isDownloadComplete()) {
+                        finishedCallback_();
+                    }
+                }, false);
+                img.src = path;
+                this.cache[path] = img;
+            }
+        };
+
+        private isDownloadComplete(): bool {
+            return this.downloadQueue.length == this.successCount + this.errorCount;
+        };
+
+        public getResource(path_) {
+            return this.cache[path_];
+        };
+
+        public allSuccessfull(): bool {
+            return this.downloadQueue.length == this.successCount;
+        }
+    }
 
 /************************************
            start app loop

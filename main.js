@@ -29,6 +29,22 @@ var SC_Main = (function () {
         this.lastFPS = 0;
         this.currentColorValue = 0;
         this.keyboardStatus = new SC_KeyboardStatus();
+        this.player = new SC_Player();
+        this.loadResources();
+    };
+    SC_Main.prototype.loadResources = function () {
+        var _this = this;
+        this.resourcesManager = new SC_ResourceManager();
+        this.resourcesManager.push("assets/dummy.png");
+        this.resourcesManager.push("assets/brick.png");
+        this.resourcesManager.startDownload(function (f) {
+            return _this.onResourcesLoaded;
+        });
+    };
+    SC_Main.prototype.onResourcesLoaded = function () {
+        if(true == this.resourcesManager.allSuccessfull()) {
+            this.player.img = this.resourcesManager.getResource("assets/dummy.png");
+        }
     };
     SC_Main.prototype.update = function () {
         var now = Date.now();
@@ -48,6 +64,7 @@ var SC_Main = (function () {
     SC_Main.prototype.render = function () {
         this.ctx.fillStyle = "rgb(" + this.currentColorValue.toFixed(0) + ", 0, 0)";
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.player.render(this.ctx);
         this.ctx.fillStyle = "rgb(255, 0, 0)";
         this.ctx.font = "24px Helvetica";
         this.ctx.textAlign = "left";
@@ -62,7 +79,7 @@ var SC_Main = (function () {
 
             }
             case 39: {
-                this.keyboardStatus.left = true;
+                this.keyboardStatus.right = true;
                 break;
 
             }
@@ -72,7 +89,7 @@ var SC_Main = (function () {
 
             }
             case 37: {
-                this.keyboardStatus.right = true;
+                this.keyboardStatus.left = true;
                 break;
 
             }
@@ -87,7 +104,7 @@ var SC_Main = (function () {
 
             }
             case 39: {
-                this.keyboardStatus.left = false;
+                this.keyboardStatus.right = false;
                 break;
 
             }
@@ -97,7 +114,7 @@ var SC_Main = (function () {
 
             }
             case 37: {
-                this.keyboardStatus.right = false;
+                this.keyboardStatus.left = false;
                 break;
 
             }
@@ -122,6 +139,9 @@ var SC_Actor = (function () {
         this.x = x;
         this.y = y;
     }
+    SC_Actor.prototype.render = function (ctx_) {
+        ctx_.drawImage(this.img, this.x, this.y);
+    };
     return SC_Actor;
 })();
 var SC_Player = (function (_super) {
@@ -132,6 +152,52 @@ var SC_Player = (function (_super) {
     }
     return SC_Player;
 })(SC_Actor);
+var SC_ResourceManager = (function () {
+    function SC_ResourceManager() {
+        this.downloadQueue = [];
+        this.cache = {
+        };
+        this.successCount = 0;
+        this.errorCount = 0;
+    }
+    SC_ResourceManager.prototype.push = function (path_) {
+        this.downloadQueue.push(path_);
+    };
+    SC_ResourceManager.prototype.startDownload = function (finishedCallback_) {
+        if(this.downloadQueue.length === 0) {
+            finishedCallback_();
+        }
+        for(var i = 0; i < this.downloadQueue.length; i++) {
+            var path = this.downloadQueue[i];
+            var img = new Image();
+            var that = this;
+            img.addEventListener("load", function () {
+                that.successCount++;
+                if(that.isDownloadComplete()) {
+                    finishedCallback_();
+                }
+            }, false);
+            img.addEventListener("error", function () {
+                that.errorCount++;
+                if(that.isDownloadComplete()) {
+                    finishedCallback_();
+                }
+            }, false);
+            img.src = path;
+            this.cache[path] = img;
+        }
+    };
+    SC_ResourceManager.prototype.isDownloadComplete = function () {
+        return this.downloadQueue.length == this.successCount + this.errorCount;
+    };
+    SC_ResourceManager.prototype.getResource = function (path_) {
+        return this.cache[path_];
+    };
+    SC_ResourceManager.prototype.allSuccessfull = function () {
+        return this.downloadQueue.length == this.successCount;
+    };
+    return SC_ResourceManager;
+})();
 requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
 var main = new SC_Main();
 main.init();
