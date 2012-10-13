@@ -38,6 +38,7 @@ class SC_Main {
         this.currentColorValue = 0;
         this.keyboardStatus = new SC_KeyboardStatus();
         this.player = new SC_Player();
+        this.resourcesManager = new SC_ResourceManager();
 
         this.loadResources();
     }
@@ -46,11 +47,12 @@ class SC_Main {
         this.resourcesManager = new SC_ResourceManager();
         this.resourcesManager.push("assets/dummy.png");
         this.resourcesManager.push("assets/brick.png");
-        this.resourcesManager.startDownload(f => this.onResourcesLoaded);
+        this.resourcesManager.startDownload(() => this.onResourcesLoaded() );
     }
 
     public onResourcesLoaded() {
-        if (true == this.resourcesManager.allSuccessfull() ) {
+        console.log("onResourcesLoaded");
+        if (true === this.resourcesManager.allSuccessfull() ) {
             this.player.img = this.resourcesManager.getResource("assets/dummy.png");
         }
     }
@@ -143,9 +145,10 @@ class SC_Main {
 
 class SC_Actor {
     constructor (public x: number = 0, public y: number = 0) {
+        this.img = new Image();
     };
 
-    public img;
+    public img:HTMLImageElement;
 
     public render(ctx_: CanvasRenderingContext2D) {
         ctx_.drawImage(this.img, this.x, this.y);
@@ -166,7 +169,7 @@ class SC_ResourceManager {
             this.downloadQueue.push(path_);
         };
 
-        public startDownload(finishedCallback_ : Function) {
+        public startDownload(finishedCallback_) {
             if (this.downloadQueue.length === 0) {
                 finishedCallback_();
             }
@@ -178,6 +181,7 @@ class SC_ResourceManager {
                 img.addEventListener("load", function () {
                     that.successCount++;
                     if (that.isDownloadComplete()) {
+                        console.log("done");
                         finishedCallback_();
                     }
                 }, false);

@@ -30,6 +30,7 @@ var SC_Main = (function () {
         this.currentColorValue = 0;
         this.keyboardStatus = new SC_KeyboardStatus();
         this.player = new SC_Player();
+        this.resourcesManager = new SC_ResourceManager();
         this.loadResources();
     };
     SC_Main.prototype.loadResources = function () {
@@ -37,12 +38,13 @@ var SC_Main = (function () {
         this.resourcesManager = new SC_ResourceManager();
         this.resourcesManager.push("assets/dummy.png");
         this.resourcesManager.push("assets/brick.png");
-        this.resourcesManager.startDownload(function (f) {
-            return _this.onResourcesLoaded;
+        this.resourcesManager.startDownload(function () {
+            return _this.onResourcesLoaded();
         });
     };
     SC_Main.prototype.onResourcesLoaded = function () {
-        if(true == this.resourcesManager.allSuccessfull()) {
+        console.log("onResourcesLoaded");
+        if(true === this.resourcesManager.allSuccessfull()) {
             this.player.img = this.resourcesManager.getResource("assets/dummy.png");
         }
     };
@@ -138,6 +140,7 @@ var SC_Actor = (function () {
         if (typeof y === "undefined") { y = 0; }
         this.x = x;
         this.y = y;
+        this.img = new Image();
     }
     SC_Actor.prototype.render = function (ctx_) {
         ctx_.drawImage(this.img, this.x, this.y);
@@ -174,6 +177,7 @@ var SC_ResourceManager = (function () {
             img.addEventListener("load", function () {
                 that.successCount++;
                 if(that.isDownloadComplete()) {
+                    console.log("done");
                     finishedCallback_();
                 }
             }, false);
